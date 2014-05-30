@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import datetime
 import getpass
 import hashlib
 import json
@@ -107,7 +108,8 @@ def download_file(url, path):
             if chunk:
                 fd.write(chunk)
                 downloaded += len(chunk)
-                print(r"{} / {} {}/s".format(sizeof_fmt(downloaded), sizeof_fmt(total), sizeof_fmt((downloaded - (total - remaining)) / (time.perf_counter() - start))), end="\r")
+                speed = (downloaded - (total - remaining)) / (time.perf_counter() - start)
+                print(r"{} / {} {}/s {:>8s}".format(sizeof_fmt(downloaded), sizeof_fmt(total).strip(), sizeof_fmt(speed), str(datetime.timedelta(seconds=int((total - downloaded) / speed)))), end="\r")
     if os.path.exists(path):
         os.rename(path, path + ".old")
     os.rename(path + ".part", path)
