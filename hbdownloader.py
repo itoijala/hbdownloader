@@ -4,6 +4,7 @@ import datetime
 import getpass
 import hashlib
 import json
+import multiprocessing
 import os
 import os.path
 import re
@@ -15,6 +16,7 @@ import requests
 session = requests.Session()
 
 def login():
+    global token
     if os.path.exists("login-token"):
         token = open("login-token", "r").read()
     else:
@@ -36,7 +38,7 @@ def get_keys():
     return [k.strip('"') for k in match.group()[11:-1].split(", ")]
 
 def get_key_data(key):
-    response = session.get("https://www.humblebundle.com/api/v1/order/{}".format(key))
+    response = requests.get("https://www.humblebundle.com/api/v1/order/{}".format(key), cookies={"_simpleauth_sess": token})
     return response.json()
 
 def hash_file(path):
@@ -102,8 +104,6 @@ def download_file(url, path):
         response = session.get(url, stream=True, headers={"Range": "bytes={}-".format(downloaded)})
         total = int(response.headers["Content-Range"].split("/")[-1])
         remaining = int(response.headers["Content-Length"])
-        print(response.headers)
-        print(total, remaining)
         for chunk in response.iter_content(chunk_size=chunk_size):
             if chunk:
                 fd.write(chunk)
@@ -220,16 +220,19 @@ if __name__ == "__main__":
     login()
     keys = get_keys()
 
+    print("Getting key data ({} keys)…".format(len(keys)), end="\r")
+    pool = multiprocessing.Pool(len(keys))
+    data = pool.map(get_key_data, keys)
+    pool.close()
+    pool.join()
+    print("Getting key data ({} keys)… done".format(len(keys)))
+
     products = dict()
-    print("Getting key data…  0 / {}".format(len(keys)), end="\r")
-    for i, key in enumerate(keys):
-        data = get_key_data(key)
-        p = parse_products(data)
+    for d in data:
+        p = parse_products(d)
         for g in p:
             if g not in products:
                 products[g] = p[g]
-        print("Getting key data… {:2d} / {}".format(i + 1, len(keys)), end="\r")
-    print()
 
     os.makedirs("dl/links", exist_ok=True)
     os.makedirs("dl/json", exist_ok=True)
