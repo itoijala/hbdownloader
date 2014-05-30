@@ -1,0 +1,5 @@
+- clear line for progress bars
+- .part files, resumable downloads
+- eta for progress bar
+- check file integrity (match md5)
+- list orphans
