@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import getpass
 import hashlib
 import json
 import os
@@ -10,26 +11,32 @@ import time
 
 import requests
 
-def login(username, password):
-    data = {"username": username, "password": password}
-    response = requests.post("https://www.humblebundle.com/login", data=data, allow_redirects=False)
-    return response.cookies["_simpleauth_sess"]
+session = requests.Session()
 
-def get_keys(session):
-    response = session.get("https://www.humblebundle.com/home")
+def login():
+    if os.path.exists("login-token"):
+        token = open("login-token", "r").read()
+    else:
+        print("Login:")
+        username = input("Email: ")
+        password = getpass.getpass("Password: ")
+        data = {"username": username, "password": password}
+        response = session.post("https://www.humblebundle.com/login", data=data, allow_redirects=False)
+        token = response.cookies["_simpleauth_sess"]
+        open("login-token", "w").write(token)
+    session.cookies.update({"_simpleauth_sess": token})
+
+def get_keys():
+    print("Getting keys…", end="\r")
+    response = session.get("https://www.humblebundle.com/home", allow_redirects=False)
     regex = re.compile(r'gamekeys: \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\]')
     match = regex.search(response.text)
+    print("Getting keys… done")
     return [k.strip('"') for k in match.group()[11:-1].split(", ")]
 
-def get_key_data(session, key):
-    if os.path.exists("json/" + key + ".json"):
-        return json.load(open("json/" + key + ".json", "r"))
-    else:
-        response = session.get("https://www.humblebundle.com/api/v1/order/{}".format(key))
-        data = response.json()
-        os.makedirs("json", exist_ok=True)
-        json.dump(data, open("json/" + key + ".json", "w"), indent=2)
-        return data
+def get_key_data(key):
+    response = session.get("https://www.humblebundle.com/api/v1/order/{}".format(key))
+    return response.json()
 
 def hash_file(path):
     f = open(path, 'rb')
@@ -83,7 +90,7 @@ def sizeof_fmt(num):
         num /= 1024
     return "{:>6.1f} {}".format(num, 'TiB')
 
-def download_file(session, url, path):
+def download_file(url, path):
     chunk_size = 100 * 1024
     response = session.get(url, stream=True)
     start = time.perf_counter()
@@ -97,7 +104,7 @@ def download_file(session, url, path):
                 print(r"{} / {} {}/s".format(sizeof_fmt(downloaded), sizeof_fmt(total), sizeof_fmt(downloaded / (time.perf_counter() - start))), end="\r")
     print()
 
-def process_file(session, game, download):
+def process_file(game, download):
     print(game + "/" + download["name"])
     d = False
     if not os.path.exists("dl/links/" + game + "/" + download["name"]):
@@ -116,7 +123,7 @@ def process_file(session, game, download):
     if d:
         if os.path.exists("dl/links/" + game + "/" + download["name"]):
             os.rename("dl/links/" + game + "/" + download["name"], "dl/links/" + game + "/" + download["name"] + ".old")
-        download_file(session, download["url"], "dl/links/" + game + "/" + download["name"])
+        download_file(download["url"], "dl/links/" + game + "/" + download["name"])
         json.dump({
                 "name": download["name"],
                 "size": download["size"],
@@ -195,34 +202,24 @@ filter_table = {
         "ebook": filter_all,
         }
 
-def process_platform(session, game, platform, downloads):
+def process_platform(game, platform, downloads):
     files = filter_table[platform](downloads.keys())
     for f in files:
-        process_file(session, game, downloads[f])
+        process_file(game, downloads[f])
 
 if __name__ == "__main__":
-    if os.path.exists("login-token"):
-        token = open("login-token", "r").read()
-    else:
-        token = login(sys.argv[1], sys.argv[2])
-        open("login-token", "w").write(token)
-    session = requests.Session()
-    session.cookies.update({"_simpleauth_sess": token})
-    if os.path.exists("keys"):
-        keys = json.load(open("keys", "r"))
-    else:
-        keys = get_keys(session)
-        json.dump(keys, open("keys", "w"), indent=2)
+    login()
+    keys = get_keys()
 
     products = dict()
-    print(" 0 / {}".format(len(keys)), end="\r")
+    print("Getting key data…  0 / {}".format(len(keys)), end="\r")
     for i, key in enumerate(keys):
-        data = get_key_data(session, key)
+        data = get_key_data(key)
         p = parse_products(data)
         for g in p:
             if g not in products:
                 products[g] = p[g]
-        print("{:2d} / {}".format(i + 1, len(keys)), end="\r")
+        print("Getting key data… {:2d} / {}".format(i + 1, len(keys)), end="\r")
     print()
 
     os.makedirs("dl/links", exist_ok=True)
@@ -243,4 +240,4 @@ if __name__ == "__main__":
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         for platform in products[p]["downloads"]:
-            process_platform(session, p, platform, products[p]["downloads"][platform])
+            process_platform(p, platform, products[p]["downloads"][platform])
