@@ -92,16 +92,25 @@ def sizeof_fmt(num):
 
 def download_file(url, path):
     chunk_size = 100 * 1024
-    response = session.get(url, stream=True)
     start = time.perf_counter()
-    with open(path, "wb") as fd:
-        total = int(response.headers["Content-Length"])
+    if os.path.exists(path + ".part"):
+        downloaded = os.path.getsize(path + ".part")
+    else:
         downloaded = 0
+    with open(path + ".part", "ab") as fd:
+        response = session.get(url, stream=True, headers={"Range": "bytes={}-".format(downloaded)})
+        total = int(response.headers["Content-Range"].split("/")[-1])
+        remaining = int(response.headers["Content-Length"])
+        print(response.headers)
+        print(total, remaining)
         for chunk in response.iter_content(chunk_size=chunk_size):
             if chunk:
                 fd.write(chunk)
                 downloaded += len(chunk)
-                print(r"{} / {} {}/s".format(sizeof_fmt(downloaded), sizeof_fmt(total), sizeof_fmt(downloaded / (time.perf_counter() - start))), end="\r")
+                print(r"{} / {} {}/s".format(sizeof_fmt(downloaded), sizeof_fmt(total), sizeof_fmt((downloaded - (total - remaining)) / (time.perf_counter() - start))), end="\r")
+    if os.path.exists(path):
+        os.rename(path, path + ".old")
+    os.rename(path + ".part", path)
     print()
 
 def process_file(game, download):
@@ -121,8 +130,6 @@ def process_file(game, download):
         if hashes["md5"] != download["md5"]:
             d = True
     if d:
-        if os.path.exists("dl/links/" + game + "/" + download["name"]):
-            os.rename("dl/links/" + game + "/" + download["name"], "dl/links/" + game + "/" + download["name"] + ".old")
         download_file(download["url"], "dl/links/" + game + "/" + download["name"])
         json.dump({
                 "name": download["name"],
@@ -204,7 +211,7 @@ filter_table = {
 
 def process_platform(game, platform, downloads):
     files = filter_table[platform](downloads.keys())
-    for f in files:
+    for f in sorted(files):
         process_file(game, downloads[f])
 
 if __name__ == "__main__":
@@ -239,5 +246,5 @@ if __name__ == "__main__":
             dirname = os.path.join(os.path.dirname(dirname), os.readlink(dirname))
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        for platform in products[p]["downloads"]:
+        for platform in sorted(products[p]["downloads"]):
             process_platform(p, platform, products[p]["downloads"][platform])
