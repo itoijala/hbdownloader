@@ -118,21 +118,21 @@ def download_file(url, path):
 def process_file(game, download):
     print(game + "/" + download["name"])
     d = False
-    if not os.path.exists("links/" + game + "/" + download["name"]):
+    if not os.path.exists(game + "/" + download["name"]):
         d = True
     if not d:
-        if os.path.getsize("links/" + game + "/" + download["name"]) != download["size"]:
+        if os.path.getsize(game + "/" + download["name"]) != download["size"]:
             d = True
     if not d:
         if os.path.exists("json/" + game + "/" + download["name"] + ".json"):
             hashes = json.load(open("json/" + game + "/" + download["name"] + ".json"))
         else:
-            hashes = hash_file("links/" + game + "/" + download["name"])
+            hashes = hash_file(game + "/" + download["name"])
             json.dump(hashes, open("json/" + game + "/" + download["name"] + ".json", "w"), indent=2)
         if hashes["md5"] != download["md5"]:
             d = True
     if d:
-        download_file(download["url"], "links/" + game + "/" + download["name"])
+        download_file(download["url"], game + "/" + download["name"])
         json.dump({
                 "name": download["name"],
                 "size": download["size"],
@@ -234,22 +234,14 @@ if __name__ == "__main__":
             if g not in products:
                 products[g] = p[g]
 
-    os.makedirs("links", exist_ok=True)
     os.makedirs("json", exist_ok=True)
     for p in sorted(products):
         stem = re.sub("(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart))+$", "", p)
-        if stem != p and not os.path.exists("links/" + p):
-            os.symlink(stem, "links/" + p, target_is_directory=True)
-        if not os.path.exists("links/" + stem):
-            os.symlink("../" + stem, "links/" + stem, target_is_directory=True)
-        if stem != p and not os.path.exists("json/" + p):
-            os.symlink(stem, "json/" + p, target_is_directory=True)
-        if not os.path.exists("json/" + stem):
-            os.makedirs("json/" + stem)
-        dirname = "links/" + p
-        while os.path.islink(dirname):
-            dirname = os.path.join(os.path.dirname(dirname), os.readlink(dirname))
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
+        if stem != p and not os.path.exists(p):
+            os.symlink(stem, p, target_is_directory=True)
+        if not os.path.exists(stem):
+            os.makedirs(stem)
+        if not os.path.exists("json/" + p):
+            os.makedirs("json/" + p)
         for platform in sorted(products[p]["downloads"]):
             process_platform(p, platform, products[p]["downloads"][platform])
