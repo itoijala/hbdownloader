@@ -118,26 +118,26 @@ def download_file(url, path):
 def process_file(game, download):
     print(game + "/" + download["name"])
     d = False
-    if not os.path.exists("dl/links/" + game + "/" + download["name"]):
+    if not os.path.exists("links/" + game + "/" + download["name"]):
         d = True
     if not d:
-        if os.path.getsize("dl/links/" + game + "/" + download["name"]) != download["size"]:
+        if os.path.getsize("links/" + game + "/" + download["name"]) != download["size"]:
             d = True
     if not d:
-        if os.path.exists("dl/json/" + game + "/" + download["name"] + ".json"):
-            hashes = json.load(open("dl/json/" + game + "/" + download["name"] + ".json"))
+        if os.path.exists("json/" + game + "/" + download["name"] + ".json"):
+            hashes = json.load(open("json/" + game + "/" + download["name"] + ".json"))
         else:
-            hashes = hash_file("dl/links/" + game + "/" + download["name"])
-            json.dump(hashes, open("dl/json/" + game + "/" + download["name"] + ".json", "w"), indent=2)
+            hashes = hash_file("links/" + game + "/" + download["name"])
+            json.dump(hashes, open("json/" + game + "/" + download["name"] + ".json", "w"), indent=2)
         if hashes["md5"] != download["md5"]:
             d = True
     if d:
-        download_file(download["url"], "dl/links/" + game + "/" + download["name"])
+        download_file(download["url"], "links/" + game + "/" + download["name"])
         json.dump({
                 "name": download["name"],
                 "size": download["size"],
                 "md5": download["md5"],
-                }, open("dl/json/" + game + "/" + download["name"] + ".json", "w"), indent=2)
+                }, open("json/" + game + "/" + download["name"] + ".json", "w"), indent=2)
 
 def filter_all(files):
     return files
@@ -234,19 +234,19 @@ if __name__ == "__main__":
             if g not in products:
                 products[g] = p[g]
 
-    os.makedirs("dl/links", exist_ok=True)
-    os.makedirs("dl/json", exist_ok=True)
+    os.makedirs("links", exist_ok=True)
+    os.makedirs("json", exist_ok=True)
     for p in sorted(products):
         stem = re.sub("(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart))+$", "", p)
-        if stem != p and not os.path.exists("dl/links/" + p):
-            os.symlink(stem, "dl/links/" + p, target_is_directory=True)
-        if not os.path.exists("dl/links/" + stem):
-            os.symlink("../" + stem, "dl/links/" + stem, target_is_directory=True)
-        if stem != p and not os.path.exists("dl/json/" + p):
-            os.symlink(stem, "dl/json/" + p, target_is_directory=True)
-        if not os.path.exists("dl/json/" + stem):
-            os.makedirs("dl/json/" + stem)
-        dirname = "dl/links/" + p
+        if stem != p and not os.path.exists("links/" + p):
+            os.symlink(stem, "links/" + p, target_is_directory=True)
+        if not os.path.exists("links/" + stem):
+            os.symlink("../" + stem, "links/" + stem, target_is_directory=True)
+        if stem != p and not os.path.exists("json/" + p):
+            os.symlink(stem, "json/" + p, target_is_directory=True)
+        if not os.path.exists("json/" + stem):
+            os.makedirs("json/" + stem)
+        dirname = "links/" + p
         while os.path.islink(dirname):
             dirname = os.path.join(os.path.dirname(dirname), os.readlink(dirname))
         if not os.path.exists(dirname):
