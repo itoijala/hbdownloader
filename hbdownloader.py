@@ -151,8 +151,8 @@ def filter_none(files):
     return []
 
 def filter_windows(files):
-    if "Download 1080p" in files:
-        return ["Download 1080p"]
+    if "1080p" in files:
+        return ["1080p"]
     return files
 
 def normalise_linux(name):
