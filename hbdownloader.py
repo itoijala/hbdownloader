@@ -15,6 +15,8 @@ import requests
 
 session = requests.Session()
 
+USE_CACHE = len(sys.argv) == 2 and sys.argv[1] == "--use-cache"
+
 def login():
     global token
     if os.path.exists("login-token"):
@@ -30,16 +32,30 @@ def login():
     session.cookies.update({"_simpleauth_sess": token})
 
 def get_keys():
-    print("Getting keys…", end="\r")
-    response = session.get("https://www.humblebundle.com/home", allow_redirects=False)
-    regex = re.compile(r'gamekeys: \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\]')
-    match = regex.search(response.text)
-    print("Getting keys… done")
-    return [k.strip('"') for k in match.group()[11:-1].split(", ")]
+    if USE_CACHE and os.path.exists("cache/keys.json"):
+        keys = json.load(open("cache/keys.json", "r"))
+    else:
+        print("Getting keys…", end="\r")
+        response = session.get("https://www.humblebundle.com/home", allow_redirects=False)
+        regex = re.compile(r'gamekeys: \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\]')
+        match = regex.search(response.text)
+        print("Getting keys… done")
+        keys = [k.strip('"') for k in match.group()[11:-1].split(", ")]
+        if USE_CACHE:
+            if not os.path.exists("cache"):
+                os.makedirs("cache")
+            json.dump(keys, open("cache/keys.json", "w"), indent=2)
+    return keys
 
 def get_key_data(key):
-    response = requests.get("https://www.humblebundle.com/api/v1/order/{}".format(key), cookies={"_simpleauth_sess": token})
-    return response.json()
+    if USE_CACHE and os.path.exists("cache/" + key + ".json"):
+        data = json.load(open("cache/" + key + ".json", "r"))
+    else:
+        response = requests.get("https://www.humblebundle.com/api/v1/order/{}".format(key), cookies={"_simpleauth_sess": token})
+        data = response.json()
+        if USE_CACHE:
+            json.dump(data, open("cache/" + key + ".json", "w"), indent=2)
+    return data
 
 def hash_file(path):
     f = open(path, 'rb')
