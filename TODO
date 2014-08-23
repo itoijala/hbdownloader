@@ -1,4 +1,3 @@
 - clear line for progress bars
 - check file integrity (match md5)
-- list orphans
 - progress bar for hash

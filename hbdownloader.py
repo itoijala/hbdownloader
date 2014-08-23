@@ -216,8 +216,11 @@ filter_table = {
 
 def process_platform(game, platform, downloads):
     files = filter_table[platform](downloads.keys())
+    paths = []
     for f in sorted(files):
         process_file(game, downloads[f])
+        paths.append(os.path.realpath(game + "/" + downloads[f]["name"]))
+    return paths
 
 if __name__ == "__main__":
     login()
@@ -238,6 +241,7 @@ if __name__ == "__main__":
                 products[g] = p[g]
 
     os.makedirs("json", exist_ok=True)
+    paths = []
     for p in sorted(products):
         stem = re.sub("(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart))+$", "", p)
         if stem != p and not os.path.exists(p):
@@ -247,4 +251,14 @@ if __name__ == "__main__":
         if not os.path.exists("json/" + p):
             os.makedirs("json/" + p)
         for platform in sorted(products[p]["downloads"]):
-            process_platform(p, platform, products[p]["downloads"][platform])
+            paths += process_platform(p, platform, products[p]["downloads"][platform])
+    print()
+    print("Orphans:")
+    printed = []
+    for p in sorted(products):
+        files = [os.path.join(p, f) for f in os.listdir(p) if os.path.isfile(os.path.join(p, f))]
+        for f in sorted(files):
+            real = os.path.realpath(f)
+            if real not in paths and real not in printed:
+                print(f)
+                printed.append(real)
