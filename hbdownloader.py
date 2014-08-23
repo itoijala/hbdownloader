@@ -79,7 +79,10 @@ def parse_products(data):
                             "md5": ds["md5"],
                             }
             if len(platform) > 0:
-                downloads[d["platform"]] = platform
+                if d["platform"] not in downloads:
+                    downloads[d["platform"]] = dict()
+                for download in platform:
+                    downloads[d["platform"]][download] = platform[download]
         if len(downloads) > 0:
             product["downloads"] = downloads
             products[product["machine_name"]] = product
