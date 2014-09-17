@@ -262,8 +262,8 @@ if __name__ == "__main__":
         stem = re.sub("(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart))+$", "", p)
         if stem != p and not os.path.exists(p):
             os.symlink(stem, p, target_is_directory=True)
-        if not os.path.exists(stem):
-            os.makedirs(stem)
+            if not os.path.exists(stem):
+                os.makedirs(stem)
         if not os.path.exists("json/" + p):
             os.makedirs("json/" + p)
         for platform in sorted(products[p]["downloads"]):
