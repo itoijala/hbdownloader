@@ -264,6 +264,8 @@ if __name__ == "__main__":
             os.symlink(stem, p, target_is_directory=True)
             if not os.path.exists(stem):
                 os.makedirs(stem)
+        if not os.path.exists(p):
+            os.makedirs(p)
         if not os.path.exists("json/" + p):
             os.makedirs("json/" + p)
         for platform in sorted(products[p]["downloads"]):
