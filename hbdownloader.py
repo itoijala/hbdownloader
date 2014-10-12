@@ -191,6 +191,7 @@ def normalise_linux(name):
             (r"^Native ",         ""),
             (r" Package$",        ""),
             (r" \(beta\)$",       ""),
+            (r" tar.gz$",         " .tar.gz"),
             ]:
         name = re.sub(r, s, name)
     return name
@@ -209,16 +210,16 @@ def filter_linux(files):
     for f in list(files):
         if re.search(r"^64", f):
             files = remove_matching(r"^32{}$".format(re.escape(re.sub(r"^64", "", f))), files)
-        if re.search(r"\.(zip|tar(\.(gz|bz2))?|deb|rpm)$", f):
-            files = remove_matching(r"\.(mojo\.run|bin|sh)$|^Installer$", files)
         if re.search(r"\.(zip|tar(\.(gz|bz2))?)$", f):
-            files = remove_matching(r"\.(deb|rpm)$", files)
-        if re.search(r"\.deb$", f):
-            files = remove_matching(r"\.rpm$", files)
+            files = remove_matching(r"\.(mojo\.run|bin|sh|deb|rpm)$|^Installer$", files)
         if re.search(r"\.tar(\.(gz|bz2))?$", f):
             files = remove_matching(r"\.zip$", files)
+        if re.search(r"\.(mojo\.run|bin|sh)$|^Installer$", f):
+            files = remove_matching(r"\.(deb|rpm)$", files)
         if f == ".mojo.run":
             files = remove_matching(r"^\.bin$", files)
+        if re.search(r"\.deb$", f):
+            files = remove_matching(r"\.rpm$", files)
     return files
 
 filter_table = {
