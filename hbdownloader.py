@@ -139,9 +139,9 @@ def process_file(game, download):
     d = False
     if not os.path.exists(game + "/" + download["name"]):
         d = True
-    if not d:
-        if os.path.getsize(game + "/" + download["name"]) != download["size"]:
-            d = True
+#    if not d:
+#        if os.path.getsize(game + "/" + download["name"]) != download["size"]:
+#            d = True
     if not d:
         if os.path.exists("json/" + game + "/" + download["name"] + ".json"):
             hashes = json.load(open("json/" + game + "/" + download["name"] + ".json"))
