@@ -17,6 +17,14 @@ session = requests.Session()
 
 USE_CACHE = len(sys.argv) == 2 and sys.argv[1] == "--use-cache"
 
+def get_csrf():
+    response = session.get("https://www.humblebundle.com/")
+    regex = re.compile(r'''<input\s[^>]*class=("|')csrftoken("|')\s[^>]*>''')
+    match = regex.search(response.text)
+    regex = re.compile(r'''value=("|')([^"']+)("|')''')
+    match = regex.search(match.group(0))
+    return match.group(2)
+
 def login():
     global token
     if os.path.exists("login-token"):
@@ -25,8 +33,12 @@ def login():
         print("Login:")
         username = input("Email: ")
         password = getpass.getpass("Password: ")
-        data = {"username": username, "password": password}
-        response = session.post("https://www.humblebundle.com/login", data=data, allow_redirects=False)
+        data = {
+                "username": username,
+                "password": password,
+                "_le_csrf_token": get_csrf(),
+                }
+        response = session.post("https://www.humblebundle.com/processlogin", data=data, allow_redirects=False)
         token = response.cookies["_simpleauth_sess"]
         open("login-token", "w").write(token)
     session.cookies.update({"_simpleauth_sess": token})
@@ -37,10 +49,10 @@ def get_keys():
     else:
         print("Getting keys…", end="\r")
         response = session.get("https://www.humblebundle.com/home", allow_redirects=False)
-        regex = re.compile(r'gamekeys: \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\]')
+        regex = re.compile(r'var gamekeys =  \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\];')
         match = regex.search(response.text)
         print("Getting keys… done")
-        keys = [k.strip('"') for k in match.group()[11:-1].split(", ")]
+        keys = [k.strip('"') for k in match.group()[18:-2].split(", ")]
         if USE_CACHE:
             if not os.path.exists("cache"):
                 os.makedirs("cache")
