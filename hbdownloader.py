@@ -223,10 +223,10 @@ def filter_linux(files):
         if re.search(r"^64", f):
             files = remove_matching(r"^32{}$".format(re.escape(re.sub(r"^64", "", f))), files)
         if re.search(r"\.(zip|tar(\.(gz|bz2))?)$", f):
-            files = remove_matching(r"\.(mojo\.run|bin|sh|deb|rpm)$|^Installer$", files)
+            files = remove_matching(r"\.(mojo\.run|bin|sh|deb|rpm)$|^Installer$|^Download$", files)
         if re.search(r"\.tar(\.(gz|bz2))?$", f):
             files = remove_matching(r"\.zip$", files)
-        if re.search(r"\.(mojo\.run|bin|sh)$|^Installer$", f):
+        if re.search(r"\.(mojo\.run|bin|sh)$|^Installer$|^Download$", f):
             files = remove_matching(r"\.(deb|rpm)$", files)
         if f == ".mojo.run":
             files = remove_matching(r"^\.bin$", files)
