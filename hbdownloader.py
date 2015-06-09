@@ -272,7 +272,7 @@ if __name__ == "__main__":
     os.makedirs("json", exist_ok=True)
     paths = []
     for p in sorted(products):
-        stem = re.sub("(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart))+$", "", p)
+        stem = re.sub("(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart|dlc))+$", "", p)
         if stem != p and not os.path.exists(p):
             os.symlink(stem, p, target_is_directory=True)
             if not os.path.exists(stem):
