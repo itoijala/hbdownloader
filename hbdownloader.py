@@ -133,6 +133,13 @@ def download_file(url, path):
         downloaded = 0
     with open(path + ".part", "ab") as fd:
         response = session.get(url, stream=True, headers={"Range": "bytes={}-".format(downloaded)})
+
+        if response.status_code >= 300:
+            print("Error: {}".format(response))
+            fd.close()
+            os.remove(path + ".part")
+            return
+
         total = int(response.headers["Content-Range"].split("/")[-1])
         remaining = int(response.headers["Content-Length"])
         for chunk in response.iter_content(chunk_size=chunk_size):
