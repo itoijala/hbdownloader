@@ -85,7 +85,7 @@ def get_key_data(key):
         with open('cache/' + key + '.json', 'r') as f:
             data = json.load(f)
     else:
-        response = session.get('https://www.humblebundle.com/api/v1/order/{}'.format(key))
+        response = requests.get('https://www.humblebundle.com/api/v1/order/{}'.format(key), cookies=session.cookies)
         data = response.json()
         if USE_CACHE:
             with open('cache/' + key + '.json', 'w') as f:
