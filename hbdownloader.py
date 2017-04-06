@@ -30,16 +30,22 @@ def login():
     if os.path.exists('login-cookies.json'):
         with open('login-cookies.json', 'r') as f:
             session.cookies.update(json.load(f))
-    else:
-        print('Login:')
-        username = input('Email: ')
-        password = getpass.getpass('Password: ')
-        data = {
-            'username': username,
-            'password': password,
-            '_le_csrf_token': get_csrf(),
-        }
-        response = session.post('https://www.humblebundle.com/processlogin', data=data, allow_redirects=False)
+    response = session.get('https://www.humblebundle.com/home', allow_redirects=False)
+    if response.status_code != 200:
+        print('Log in in firefox and open the developer tools network tab. Reload the page. Right-click the top request and click "copy request headers". Paste here and press Enter twice:')
+        headers = []
+        while True:
+            line = input()
+            if line:
+                headers.append(line)
+            else:
+                break
+        for header in headers:
+            if header.lower().startswith('cookie:'):
+                cookies = header
+        cookies = dict([c.strip().split('=', 1) for c in cookies[len('cookie:'):].split(';')])
+        session.cookies.clear()
+        session.cookies.update(cookies)
         with open('login-cookies.json', 'w') as f:
             json.dump(dict(session.cookies), f, indent=2)
 
@@ -49,10 +55,7 @@ def get_keys():
             keys = json.load(f)
     else:
         print('Getting keys…', end='\r')
-        response = session.get('https://www.humblebundle.com/home', allow_redirects=False)
-        if response.status_code == 302 and response.headers['location'] == 'https://www.humblebundle.com/user/humbleguard?goto=/home&qs=':
-            humbleguard()
-            return get_keys()
+        response = session.get('https://www.humblebundle.com/home/library', allow_redirects=False)
         regex = re.compile(r'var gamekeys =  \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\];')
         match = regex.search(response.text)
         keys = [k.strip('"') for k in match.group()[18:-2].split(', ')]
@@ -63,22 +66,6 @@ def get_keys():
             with open('cache/keys.json', 'w') as f:
                 json.dump(keys, f, indent=2)
     return keys
-
-def humbleguard():
-    code = input('Humbleguard code from email: ')
-    session.get('https://www.humblebundle.com/user/humbleguard?goto=/home&qs=', allow_redirects=False)
-    data = {
-        'code': code,
-        'goto': '/home',
-        'qs': '',
-    }
-    r = session.post('https://www.humblebundle.com/user/humbleguard', data=data, allow_redirects=False)
-    if r.status_code != 200:
-        print(r.status_code)
-        print(r.headers)
-        exit(1)
-    with open('login-cookies.json', 'w') as f:
-        json.dump(dict(session.cookies), f, indent=2)
 
 def get_key_data(key):
     if USE_CACHE and os.path.exists('cache/' + key + '.json'):
