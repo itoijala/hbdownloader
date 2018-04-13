@@ -61,8 +61,7 @@ def get_keys():
         keys = [k.strip('"') for k in match.group()[18:-2].split(', ')]
         print('Getting keys… done')
         if USE_CACHE:
-            if not os.path.exists('cache'):
-                os.makedirs('cache')
+            os.makedirs('cache', exist_ok=True)
             with open('cache/keys.json', 'w') as f:
                 json.dump(keys, f, indent=2)
     return keys
@@ -295,12 +294,9 @@ if __name__ == '__main__':
         stem = re.sub('(_(soundtrack_only|no_soundtrack|soundtrack|android_and_pc|android|pc|bundle|boxart|dlc))+$', '', p)
         if stem != p and not os.path.exists(p):
             os.symlink(stem, p, target_is_directory=True)
-            if not os.path.exists(stem):
-                os.makedirs(stem)
-        if not os.path.exists(p):
-            os.makedirs(p)
-        if not os.path.exists('json/' + p):
-            os.makedirs('json/' + p)
+            os.makedirs(stem, exist_ok=True)
+        os.makedirs(p, exist_ok=True)
+        os.makedirs('json/' + p, exist_ok=True)
         for platform in sorted(products[p]['downloads']):
             paths += process_platform(p, platform, products[p]['downloads'][platform])
     print()
