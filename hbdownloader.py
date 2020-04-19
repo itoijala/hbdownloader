@@ -56,9 +56,9 @@ def get_keys():
     else:
         print('Getting keys…', end='\r')
         response = session.get('https://www.humblebundle.com/home/library', allow_redirects=False)
-        regex = re.compile(r'var gamekeys =  \[(?:"([a-zA-Z0-9]+)", )*"([a-zA-Z0-9]+)"\];')
+        regex = re.compile(r'"gamekeys": \[((?:"[a-zA-Z0-9]+"(?:, )?)+)\],')
         match = regex.search(response.text)
-        keys = [k.strip('"') for k in match.group()[18:-2].split(', ')]
+        keys = [k.strip('"') for k in match[1].split(', ')]
         print('Getting keys… done')
         if USE_CACHE:
             os.makedirs('cache', exist_ok=True)
@@ -71,7 +71,7 @@ def get_key_data(key):
         with open('cache/' + key + '.json', 'r') as f:
             data = json.load(f)
     else:
-        response = requests.get('https://www.humblebundle.com/api/v1/order/{}'.format(key), cookies=session.cookies)
+        response = requests.get('https://www.humblebundle.com/api/v1/order/{}?all_tpkds=true'.format(key), cookies=session.cookies)
         data = response.json()
         if USE_CACHE:
             with open('cache/' + key + '.json', 'w') as f:
@@ -167,9 +167,6 @@ def process_file(game, download):
     d = False
     if not os.path.exists(game + '/' + download['name']):
         d = True
-#    if not d:
-#        if os.path.getsize(game + '/' + download['name']) != download['size']:
-#            d = True
     if not d:
         if os.path.exists('json/' + game + '/' + download['name'] + '.json'):
             with open('json/' + game + '/' + download['name'] + '.json', 'r') as f:
@@ -260,6 +257,7 @@ filter_table = {
     'linux': filter_linux,
     'audio': filter_audio,
     'ebook': filter_all,
+    'video': filter_all,
 }
 
 def process_platform(game, platform, downloads):
@@ -295,17 +293,19 @@ if __name__ == '__main__':
         if stem != p and not os.path.exists(p):
             os.symlink(stem, p, target_is_directory=True)
             os.makedirs(stem, exist_ok=True)
-        os.makedirs(p, exist_ok=True)
-        os.makedirs('json/' + p, exist_ok=True)
-        for platform in sorted(products[p]['downloads']):
-            paths += process_platform(p, platform, products[p]['downloads'][platform])
+        if not (os.path.exists(p) and os.path.islink(p) and os.readlink(p) == '/dev/null'):
+            os.makedirs(p, exist_ok=True)
+            os.makedirs('json/' + p, exist_ok=True)
+            for platform in sorted(products[p]['downloads']):
+                paths += process_platform(p, platform, products[p]['downloads'][platform])
     print()
     print('Orphans:')
     printed = []
     for p in sorted(products):
-        files = [os.path.join(p, f) for f in os.listdir(p) if os.path.isfile(os.path.join(p, f))]
-        for f in sorted(files):
-            real = os.path.realpath(f)
-            if real not in paths and real not in printed:
-                print(f)
-                printed.append(real)
+        if not (os.path.exists(p) and os.path.islink(p) and os.readlink(p) == '/dev/null'):
+            files = [os.path.join(p, f) for f in os.listdir(p) if os.path.isfile(os.path.join(p, f))]
+            for f in sorted(files):
+                real = os.path.realpath(f)
+                if real not in paths and real not in printed:
+                    print(f)
+                    printed.append(real)
